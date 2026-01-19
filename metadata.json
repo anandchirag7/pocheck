@@ -1,0 +1,5 @@
+{
+  "name": "POCheck AI Assistant",
+  "description": "A production-ready intelligent chatbot for Purchase Order verification, leveraging Teradata backend logic and Gemini AI for natural language data interaction.",
+  "requestFramePermissions": []
+}
