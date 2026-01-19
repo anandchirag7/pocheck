@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FAQ_DATA } from '../constants';
+import { fetchUserProfile, UserProfile } from '../services/userService';
 
 interface SidebarProps {
   onSelectTemplate: (prompt: string, templateId: string) => void;
@@ -19,6 +20,18 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [openCategory, setOpenCategory] = useState<string | null>("Purchase Orders");
   const [dateType, setDateType] = useState<string>('preset');
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    fetchUserProfile().then(data => {
+      setUser(data);
+      // Auto-populate UserID filter if empty
+      if (!params['@UserID']) {
+        onParamsChange({ ...params, '@UserID': data.user_id });
+      }
+    });
+  }, []);
 
   const handleParamChange = (key: string, value: string) => {
     onParamsChange({ ...params, [key]: value });
@@ -46,21 +59,44 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <aside className="w-80 flex-shrink-0 bg-slate-900 text-slate-300 flex flex-col border-r border-slate-800 hidden lg:flex">
-      {/* User Identity Section */}
-      <div className="p-5 border-b border-slate-800 bg-slate-800/30">
-        <h2 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Session Identity</h2>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-[9px] text-slate-500 mb-1 ml-1 uppercase">User ID</label>
-            <input
-              type="text"
-              value={params['@UserID'] || ''}
-              onChange={(e) => handleParamChange('@UserID', e.target.value)}
-              placeholder="e.g. JDOE_PROC"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-            />
+      {/* User Identity Section with Dropdown */}
+      <div className="relative p-5 border-b border-slate-800 bg-slate-800/30">
+        <button 
+          onClick={() => setIsProfileOpen(!isProfileOpen)}
+          className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-slate-700/50 transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold shadow-lg group-hover:scale-105 transition-transform">
+            {user?.full_name.charAt(0) || 'U'}
           </div>
-        </div>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-bold text-white truncate">{user?.full_name || 'Loading...'}</p>
+            <p className="text-[10px] text-slate-500 truncate">{user?.role || 'Fetching profile...'}</p>
+          </div>
+          <svg className={`w-4 h-4 text-slate-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+        </button>
+
+        {isProfileOpen && (
+          <div className="absolute top-full left-4 right-4 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 p-4 animate-in fade-in slide-in-from-top-2">
+            <h3 className="text-[9px] font-bold text-indigo-400 uppercase tracking-widest mb-2">Teradata Profile Info</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between text-[10px]">
+                <span className="text-slate-500">Dept:</span>
+                <span className="text-slate-200 font-medium">{user?.department}</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span className="text-slate-500">Location:</span>
+                <span className="text-slate-200 font-medium">{user?.location}</span>
+              </div>
+              <div className="flex justify-between text-[10px]">
+                <span className="text-slate-500">Last Login:</span>
+                <span className="text-slate-200 font-medium">{user?.last_login}</span>
+              </div>
+              <div className="pt-2 mt-2 border-t border-slate-700 flex justify-center">
+                <button className="text-[9px] font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-widest">Logout Session</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AI Mode Toggle */}
@@ -88,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-4 space-y-6">
-          {/* FAQ / Library Section - NOW FIRST */}
+          {/* FAQ / Library Section */}
           <div>
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Query Library</h2>
             {FAQ_DATA.map((group) => (
@@ -120,7 +156,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             ))}
           </div>
 
-          {/* Filters Block - NOW UNDER FAQ */}
+          {/* Filters Block */}
           <div className="pt-2 border-t border-slate-800">
             <h2 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Query Parameters</h2>
             <div className="space-y-4">
@@ -225,7 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </div>
       
       <div className="p-4 border-t border-slate-800 text-[10px] text-slate-600 text-center font-mono">
-        &copy; 2025 PO-CHECK-AI • Enterprise v3.5
+        &copy; 2025 PO-CHECK-AI • Enterprise v3.6
       </div>
     </aside>
   );
